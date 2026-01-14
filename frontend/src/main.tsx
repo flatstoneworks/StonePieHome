@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Layout from '@/components/Layout'
 import HomePage from '@/pages/HomePage'
+import SettingsPage from '@/pages/SettingsPage'
 import ServicesPage from '@/pages/ServicesPage'
 import DockerPage from '@/pages/DockerPage'
 import NetworkPage from '@/pages/NetworkPage'
@@ -26,11 +27,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <TooltipProvider delayDuration={300}>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<HomePage />} />
-              <Route path="services" element={<ServicesPage />} />
-              <Route path="docker" element={<DockerPage />} />
-              <Route path="network" element={<NetworkPage />} />
+            {/* Dashboard and Settings have their own layout */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+
+            {/* Other pages use the standard Layout */}
+            <Route element={<Layout />}>
+              <Route path="/services" element={<ServicesPage />} />
+              <Route path="/docker" element={<DockerPage />} />
+              <Route path="/network" element={<NetworkPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

@@ -14,6 +14,14 @@ export default defineConfig({
         target: 'http://localhost:8021',
         changeOrigin: true,
       },
+      '/static': {
+        target: 'http://localhost:8021',
+        changeOrigin: true,
+      },
+      '/data': {
+        target: 'http://localhost:8021',
+        changeOrigin: true,
+      },
     },
   },
   resolve: {

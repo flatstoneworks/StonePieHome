@@ -1,6 +1,19 @@
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import system, services, docker, network
+from fastapi.staticfiles import StaticFiles
+from app.routes import system, services, docker, network, settings, actions, wifi
+
+# Directory paths
+BACKEND_DIR = Path(__file__).parent.parent
+STATIC_DIR = BACKEND_DIR / "static"
+DATA_DIR = BACKEND_DIR.parent / "data"
+
+# Ensure directories exist
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+(STATIC_DIR / "wallpapers").mkdir(parents=True, exist_ok=True)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+(DATA_DIR / "wallpapers").mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
     title="StonePieHome API",
@@ -17,11 +30,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static files for wallpapers
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+app.mount("/data", StaticFiles(directory=str(DATA_DIR)), name="data")
+
 # Include routers
 app.include_router(system.router)
 app.include_router(services.router)
 app.include_router(docker.router)
 app.include_router(network.router)
+app.include_router(settings.router)
+app.include_router(actions.router)
+app.include_router(wifi.router)
 
 
 @app.get("/api/health")

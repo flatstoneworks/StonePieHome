@@ -110,6 +110,55 @@ export interface NetworkStatus {
   established_connections: number
 }
 
+// Settings types
+export interface UserSettings {
+  user_name: string
+  wallpaper: string
+  dock_apps: string[]
+  theme: string
+}
+
+export interface WallpaperInfo {
+  id: string
+  name: string
+  url: string
+  thumbnail_url: string
+  is_default: boolean
+}
+
+export interface DeviceInfo {
+  hostname: string
+  os: string
+  local_ip: string
+  uptime_seconds: number
+  uptime_formatted: string
+}
+
+export interface ActionResponse {
+  success: boolean
+  message: string
+}
+
+// Wi-Fi types
+export interface WifiNetwork {
+  ssid: string
+  signal: number
+  security: string
+  in_use: boolean
+}
+
+export interface WifiStatus {
+  connected: boolean
+  ssid: string | null
+  signal: number | null
+  device: string | null
+}
+
+export interface WifiInfo {
+  status: WifiStatus
+  networks: WifiNetwork[]
+}
+
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, options)
   if (!response.ok) {
@@ -173,4 +222,62 @@ export const api = {
 
   // Network endpoints
   getNetworkStatus: () => fetchJson<NetworkStatus>(`${BASE_URL}/network/status`),
+
+  // Settings endpoints
+  getSettings: () => fetchJson<UserSettings>(`${BASE_URL}/settings`),
+
+  updateSettings: (settings: UserSettings) =>
+    fetchJson<{ success: boolean; message: string }>(`${BASE_URL}/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    }),
+
+  // Wallpaper endpoints
+  getWallpapers: () => fetchJson<WallpaperInfo[]>(`${BASE_URL}/settings/wallpapers`),
+
+  uploadWallpaper: async (file: File): Promise<WallpaperInfo> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await fetch(`${BASE_URL}/settings/wallpapers/upload`, {
+      method: 'POST',
+      body: formData,
+    })
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Upload failed' }))
+      throw new Error(error.detail || 'Upload failed')
+    }
+    return response.json()
+  },
+
+  deleteWallpaper: (id: string) =>
+    fetchJson<{ success: boolean; message: string }>(
+      `${BASE_URL}/settings/wallpapers/${id}`,
+      { method: 'DELETE' }
+    ),
+
+  // Device info endpoint
+  getDeviceInfo: () => fetchJson<DeviceInfo>(`${BASE_URL}/system/info`),
+
+  // System actions (UI-only for now)
+  restartSystem: () =>
+    fetchJson<ActionResponse>(`${BASE_URL}/actions/restart`, { method: 'POST' }),
+
+  shutdownSystem: () =>
+    fetchJson<ActionResponse>(`${BASE_URL}/actions/shutdown`, { method: 'POST' }),
+
+  logout: () =>
+    fetchJson<ActionResponse>(`${BASE_URL}/actions/logout`, { method: 'POST' }),
+
+  // Wi-Fi endpoints
+  getWifiInfo: () => fetchJson<WifiInfo>(`${BASE_URL}/wifi`),
+
+  getWifiStatus: () => fetchJson<WifiStatus>(`${BASE_URL}/wifi/status`),
+
+  getWifiNetworks: () => fetchJson<WifiNetwork[]>(`${BASE_URL}/wifi/networks`),
+
+  scanWifiNetworks: () =>
+    fetchJson<{ success: boolean; message: string }>(`${BASE_URL}/wifi/scan`, {
+      method: 'POST',
+    }),
 }
