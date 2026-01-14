@@ -1,6 +1,8 @@
-# SparkHome
+# StonePieHome
 
-A modern web dashboard for managing your NVIDIA DGX Spark workstation. Monitor system resources, manage services, Docker containers, and network status from a single interface.
+A modern web dashboard for managing your Personal AI workstation. Monitor system resources, manage services, Docker containers, and network status from a single interface.
+
+Part of the **StonePie** Personal AI Suite by [FlatStoneWorks](https://github.com/flatstoneworks).
 
 ## Features
 
@@ -39,14 +41,14 @@ A modern web dashboard for managing your NVIDIA DGX Spark workstation. Monitor s
 
 ```bash
 # Clone the repository
-git clone https://github.com/flatstoneworks/SparkHome.git
-cd SparkHome
+git clone https://github.com/flatstoneworks/StonePieHome.git
+cd StonePieHome
 
 # Start both frontend and backend
 ./start.sh
 ```
 
-Open http://spark.local:8888 in your browser.
+Open http://spark.local:8020 in your browser.
 
 ## Manual Setup
 
@@ -57,7 +59,7 @@ cd backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8889
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8021
 ```
 
 ### Frontend
@@ -72,9 +74,9 @@ npm run dev
 
 | Service | Port |
 |---------|------|
-| Frontend | 8888 |
-| Backend API | 8889 |
-| API Docs | 8889/docs |
+| Frontend | 8020 |
+| Backend API | 8021 |
+| API Docs | 8021/docs |
 
 ## API Endpoints
 

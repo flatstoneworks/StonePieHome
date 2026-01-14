@@ -5,13 +5,13 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 8888,
+    port: 8020,
     strictPort: true,
     host: '0.0.0.0',
     allowedHosts: ['spark.local'],
     proxy: {
       '/api': {
-        target: 'http://localhost:8889',
+        target: 'http://localhost:8021',
         changeOrigin: true,
       },
     },

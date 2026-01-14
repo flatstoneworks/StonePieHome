@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}Starting SparkHome...${NC}"
 
 # Start backend
-echo -e "${GREEN}Starting backend on port 8889...${NC}"
+echo -e "${GREEN}Starting backend on port 8021...${NC}"
 cd backend
 if [ ! -d "venv" ]; then
     echo "Creating Python virtual environment..."
@@ -25,21 +25,21 @@ else
     source venv/bin/activate
 fi
 
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8889 &
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8021 &
 BACKEND_PID=$!
 cd ..
 
 # Start frontend
-echo -e "${GREEN}Starting frontend on port 8888...${NC}"
+echo -e "${GREEN}Starting frontend on port 8020...${NC}"
 cd frontend
 npm run dev &
 FRONTEND_PID=$!
 cd ..
 
 echo -e "${BLUE}SparkHome started!${NC}"
-echo -e "Frontend: http://spark.local:8888"
-echo -e "Backend:  http://spark.local:8889"
-echo -e "API Docs: http://spark.local:8889/docs"
+echo -e "Frontend: http://spark.local:8020"
+echo -e "Backend:  http://spark.local:8021"
+echo -e "API Docs: http://spark.local:8021/docs"
 echo ""
 echo "Press Ctrl+C to stop all services"
 
