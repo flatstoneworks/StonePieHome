@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Wifi, WifiOff, Signal, Lock, RefreshCw, Check } from 'lucide-react'
+import { Wifi, WifiOff, Lock, RefreshCw, Check } from 'lucide-react'
 import { api, WifiNetwork } from '@/api/client'
 import {
   Dialog,

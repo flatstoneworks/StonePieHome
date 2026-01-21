@@ -24,7 +24,12 @@ app = FastAPI(
 # CORS middleware for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://spark.local:8020", "http://localhost:8020"],
+    allow_origins=[
+        "http://spark.local:8020",  # Development
+        "http://localhost:8020",
+        "http://spark.local:1024",  # Production
+        "http://localhost:1024"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

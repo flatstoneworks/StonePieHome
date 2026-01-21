@@ -24,6 +24,25 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    port: 1024,
+    strictPort: true,
+    host: '0.0.0.0',
+    proxy: {
+      '/api': {
+        target: 'http://localhost:1025',
+        changeOrigin: true,
+      },
+      '/static': {
+        target: 'http://localhost:1025',
+        changeOrigin: true,
+      },
+      '/data': {
+        target: 'http://localhost:1025',
+        changeOrigin: true,
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

@@ -1,7 +1,6 @@
 import { GlassCard } from './GlassCard'
 import { Progress } from '@/components/ui/progress'
 import { formatBytes } from '@/lib/utils'
-import { MemoryStick } from 'lucide-react'
 
 interface MemoryCardProps {
   used: number
