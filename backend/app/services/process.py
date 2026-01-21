@@ -1,8 +1,13 @@
 import socket
 import subprocess
 import os
+import time
+import logging
 from typing import Optional
 from app.models import ServiceInfo, ServiceStatus
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Known services configuration
 KNOWN_SERVICES = {
@@ -122,8 +127,59 @@ def start_service(name: str) -> tuple[bool, str]:
         return False, f"Failed to start {name}: {str(e)}"
 
 
+def graceful_kill_process(pid: str, timeout: float = 5.0) -> bool:
+    """
+    Gracefully terminate a process.
+
+    First tries SIGTERM (-15) for graceful shutdown, waits up to timeout seconds,
+    then uses SIGKILL (-9) if process is still running.
+
+    Args:
+        pid: Process ID to kill
+        timeout: Seconds to wait for graceful shutdown
+
+    Returns:
+        True if process was killed, False otherwise
+    """
+    try:
+        # First try graceful shutdown with SIGTERM
+        result = subprocess.run(
+            ["kill", "-15", pid],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode != 0:
+            # Process doesn't exist
+            return False
+
+        logger.info(f"Sent SIGTERM to PID {pid}, waiting {timeout}s for graceful shutdown")
+
+        # Wait for process to terminate
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            # Check if process still exists
+            check = subprocess.run(
+                ["kill", "-0", pid],
+                capture_output=True,
+                text=True
+            )
+            if check.returncode != 0:
+                # Process terminated gracefully
+                logger.info(f"PID {pid} terminated gracefully")
+                return True
+            time.sleep(0.5)
+
+        # Process didn't terminate, force kill
+        logger.warning(f"PID {pid} didn't terminate gracefully, using SIGKILL")
+        subprocess.run(["kill", "-9", pid], capture_output=True)
+        return True
+    except Exception as e:
+        logger.error(f"Error killing process {pid}: {e}")
+        return False
+
+
 def stop_service(name: str) -> tuple[bool, str]:
-    """Stop a service by killing processes on its ports."""
+    """Stop a service by gracefully terminating processes on its ports."""
     if name not in KNOWN_SERVICES:
         return False, f"Unknown service: {name}"
 
@@ -140,7 +196,7 @@ def stop_service(name: str) -> tuple[bool, str]:
     killed = False
     for port in ports_to_kill:
         try:
-            # Find and kill process using the port
+            # Find processes using the port
             result = subprocess.run(
                 ["lsof", "-ti", f":{port}"],
                 capture_output=True,
@@ -149,10 +205,10 @@ def stop_service(name: str) -> tuple[bool, str]:
             if result.stdout.strip():
                 pids = result.stdout.strip().split('\n')
                 for pid in pids:
-                    subprocess.run(["kill", "-9", pid], capture_output=True)
-                    killed = True
-        except Exception:
-            pass
+                    if graceful_kill_process(pid):
+                        killed = True
+        except Exception as e:
+            logger.error(f"Error stopping service {name} on port {port}: {e}")
 
     if killed:
         return True, f"Stopped {name}"

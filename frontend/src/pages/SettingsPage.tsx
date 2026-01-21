@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Power, RotateCw, Wifi } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -15,7 +15,6 @@ import { formatBytes } from '@/lib/utils'
 export default function SettingsPage() {
   const queryClient = useQueryClient()
   const [nameInput, setNameInput] = useState('')
-  const [nameInitialized, setNameInitialized] = useState(false)
   const [wifiDialogOpen, setWifiDialogOpen] = useState(false)
 
   const { data: settings } = useQuery({
@@ -24,10 +23,11 @@ export default function SettingsPage() {
   })
 
   // Initialize name input when settings load
-  if (settings && !nameInitialized) {
-    setNameInput(settings.user_name)
-    setNameInitialized(true)
-  }
+  useEffect(() => {
+    if (settings?.user_name) {
+      setNameInput(settings.user_name)
+    }
+  }, [settings?.user_name])
 
   const { data: deviceInfo } = useQuery({
     queryKey: ['device-info'],
@@ -160,7 +160,7 @@ export default function SettingsPage() {
                 {shutdownMutation.isPending ? 'Shutting down...' : 'Shut down'}
               </Button>
               <p className="text-xs text-muted-foreground mt-2">
-                Note: Actions are currently in UI-only mode.
+                Note: System actions require ENABLE_SYSTEM_ACTIONS=true in backend environment.
               </p>
             </CardContent>
           </Card>

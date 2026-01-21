@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useServiceActions } from '@/hooks/useServiceActions'
 import {
   Folder,
   Image,
@@ -57,37 +57,37 @@ interface ServiceCardProps {
 export default function ServiceCard({ service }: ServiceCardProps) {
   const [showLogs, setShowLogs] = useState(false)
   const [logs, setLogs] = useState<string[]>([])
-  const queryClient = useQueryClient()
 
   const isRunning = service.status === 'running'
   const port = service.frontend_port || service.backend_port
   const url = port ? `http://spark.local:${port}` : null
 
-  const startMutation = useMutation({
-    mutationFn: () => api.startService(service.name),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['services'] })
-    },
-  })
+  // Use custom hook for service actions
+  const { start, stop, restart, isLoading } = useServiceActions(service.name)
 
-  const stopMutation = useMutation({
-    mutationFn: () => api.stopService(service.name),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['services'] })
-    },
-  })
+  const handleOpenUrl = () => {
+    if (!url) {
+      console.warn('No URL available for service:', service.name)
+      return
+    }
 
-  const restartMutation = useMutation({
-    mutationFn: () => api.restartService(service.name),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['services'] })
-    },
-  })
+    if (!isRunning) {
+      console.warn('Cannot open URL - service is not running:', service.name)
+      return
+    }
 
-  const isLoading =
-    startMutation.isPending ||
-    stopMutation.isPending ||
-    restartMutation.isPending
+    // Validate URL format
+    try {
+      const urlObj = new URL(url)
+      if (!['http:', 'https:'].includes(urlObj.protocol)) {
+        console.error('Invalid URL protocol:', urlObj.protocol)
+        return
+      }
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (error) {
+      console.error('Invalid URL format:', url, error)
+    }
+  }
 
   const handleViewLogs = async () => {
     try {
@@ -129,7 +129,7 @@ export default function ServiceCard({ service }: ServiceCardProps) {
             <DropdownMenuContent align="end">
               {url && isRunning && (
                 <>
-                  <DropdownMenuItem onClick={() => window.open(url, '_blank')}>
+                  <DropdownMenuItem onClick={handleOpenUrl}>
                     <ExternalLink className="mr-2 h-4 w-4" />
                     Open in Browser
                   </DropdownMenuItem>
@@ -182,10 +182,10 @@ export default function ServiceCard({ service }: ServiceCardProps) {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => stopMutation.mutate()}
+                        onClick={() => stop.mutate()}
                         disabled={isLoading}
                       >
-                        {stopMutation.isPending ? (
+                        {stop.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Square className="h-4 w-4" />
@@ -201,10 +201,10 @@ export default function ServiceCard({ service }: ServiceCardProps) {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => restartMutation.mutate()}
+                        onClick={() => restart.mutate()}
                         disabled={isLoading}
                       >
-                        {restartMutation.isPending ? (
+                        {restart.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <RotateCw className="h-4 w-4" />
@@ -221,10 +221,10 @@ export default function ServiceCard({ service }: ServiceCardProps) {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-green-500 hover:text-green-400"
-                      onClick={() => startMutation.mutate()}
+                      onClick={() => start.mutate()}
                       disabled={isLoading}
                     >
-                      {startMutation.isPending ? (
+                      {start.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <Play className="h-4 w-4" />

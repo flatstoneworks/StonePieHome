@@ -65,8 +65,11 @@ def get_gpu_metrics() -> dict:
 
 def get_system_metrics() -> SystemMetrics:
     """Collect all system metrics."""
-    cpu_percent = psutil.cpu_percent(interval=0.1)
+    # Get CPU metrics with a single interval call
+    # First call gets per-core percentages
     cpu_per_core = psutil.cpu_percent(interval=0.1, percpu=True)
+    # Calculate overall percentage from per-core data to avoid second blocking call
+    cpu_percent = sum(cpu_per_core) / len(cpu_per_core) if cpu_per_core else 0.0
     cpu_count = psutil.cpu_count()
 
     memory = psutil.virtual_memory()

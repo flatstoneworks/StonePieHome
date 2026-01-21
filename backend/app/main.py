@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,14 +23,15 @@ app = FastAPI(
 )
 
 # CORS middleware for frontend
+# Get allowed origins from environment or use defaults
+ALLOWED_ORIGINS = os.getenv(
+    "CORS_ORIGINS",
+    "http://spark.local:8020,http://localhost:8020"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://spark.local:8020",  # Development
-        "http://localhost:8020",
-        "http://spark.local:1024",  # Production
-        "http://localhost:1024"
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -159,13 +159,17 @@ export interface WifiInfo {
   networks: WifiNetwork[]
 }
 
-async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, options)
+async function handleResponse<T>(response: Response, defaultError: string = 'Request failed'): Promise<T> {
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Request failed' }))
-    throw new Error(error.detail || 'Request failed')
+    const error = await response.json().catch(() => ({ detail: defaultError }))
+    throw new Error(error.detail || defaultError)
   }
   return response.json()
+}
+
+async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(url, options)
+  return handleResponse<T>(response)
 }
 
 export const api = {
@@ -243,11 +247,7 @@ export const api = {
       method: 'POST',
       body: formData,
     })
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Upload failed' }))
-      throw new Error(error.detail || 'Upload failed')
-    }
-    return response.json()
+    return handleResponse<WallpaperInfo>(response, 'Upload failed')
   },
 
   deleteWallpaper: (id: string) =>

@@ -1,8 +1,12 @@
 from fastapi import APIRouter, HTTPException, Query
 import subprocess
 import json
+import logging
 from typing import Optional
 from pydantic import BaseModel
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/docker", tags=["docker"])
 
@@ -46,12 +50,16 @@ def run_docker_command(args: list[str]) -> tuple[bool, str]:
         if result.returncode == 0:
             return True, result.stdout
         else:
+            logger.warning(f"Docker command failed: docker {' '.join(args)} - {result.stderr}")
             return False, result.stderr
     except subprocess.TimeoutExpired:
+        logger.error(f"Docker command timeout: docker {' '.join(args)}")
         return False, "Command timed out"
     except FileNotFoundError:
+        logger.error("Docker executable not found")
         return False, "Docker not found"
     except Exception as e:
+        logger.error(f"Unexpected error running docker command: {e}")
         return False, str(e)
 
 
@@ -64,7 +72,7 @@ async def list_containers(all: bool = Query(default=True, description="Show all 
 
     success, output = run_docker_command(args)
     if not success:
-        # Return empty list if docker isn't available
+        logger.warning("Failed to list Docker containers, returning empty list")
         return []
 
     containers = []
@@ -82,7 +90,8 @@ async def list_containers(all: bool = Query(default=True, description="Show all 
                 ports=data.get("Ports", "").split(", ") if data.get("Ports") else [],
                 created=data.get("CreatedAt", ""),
             ))
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse container JSON: {e}")
             continue
 
     return containers
@@ -173,8 +182,18 @@ async def get_docker_info():
     """Get Docker system info."""
     success, output = run_docker_command(["info", "--format", "json"])
     if not success:
-        # Return None if docker isn't available
-        return None
+        logger.warning("Failed to get Docker info")
+        return {
+            "containers": 0,
+            "containers_running": 0,
+            "containers_paused": 0,
+            "containers_stopped": 0,
+            "images": 0,
+            "server_version": "unavailable",
+            "storage_driver": "",
+            "memory_total": 0,
+            "cpus": 0,
+        }
 
     try:
         data = json.loads(output)
@@ -189,5 +208,16 @@ async def get_docker_info():
             "memory_total": data.get("MemTotal", 0),
             "cpus": data.get("NCPU", 0),
         }
-    except json.JSONDecodeError:
-        return None
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse Docker info JSON: {e}")
+        return {
+            "containers": 0,
+            "containers_running": 0,
+            "containers_paused": 0,
+            "containers_stopped": 0,
+            "images": 0,
+            "server_version": "error",
+            "storage_driver": "",
+            "memory_total": 0,
+            "cpus": 0,
+        }

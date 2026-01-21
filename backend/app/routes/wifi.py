@@ -1,7 +1,11 @@
 """Wi-Fi management routes."""
 import subprocess
+import logging
 from fastapi import APIRouter
 from pydantic import BaseModel
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/wifi", tags=["wifi"])
 
@@ -56,16 +60,25 @@ def get_wifi_networks() -> list[WifiNetwork]:
                             security=security,
                             in_use=in_use
                         ))
-    except Exception:
-        pass
+    except subprocess.TimeoutExpired:
+        logger.error("Timeout while scanning Wi-Fi networks")
+    except subprocess.SubprocessError as e:
+        logger.error(f"Failed to get Wi-Fi networks: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error while getting Wi-Fi networks: {e}")
 
     # Sort by signal strength (strongest first), with in-use network at top
     networks.sort(key=lambda x: (not x.in_use, -x.signal))
     return networks
 
 
-def get_wifi_status() -> WifiStatus:
-    """Get current Wi-Fi connection status."""
+def get_wifi_status(networks: list[WifiNetwork] | None = None) -> WifiStatus:
+    """
+    Get current Wi-Fi connection status.
+
+    Args:
+        networks: Optional pre-fetched network list to avoid redundant calls
+    """
     try:
         result = subprocess.run(
             ['nmcli', '-t', '-f', 'NAME,TYPE,DEVICE', 'connection', 'show', '--active'],
@@ -81,7 +94,8 @@ def get_wifi_status() -> WifiStatus:
                     device = parts[2]
                     # Get signal strength for connected network
                     signal = None
-                    networks = get_wifi_networks()
+                    if networks is None:
+                        networks = get_wifi_networks()
                     for net in networks:
                         if net.in_use:
                             signal = net.signal
@@ -92,8 +106,12 @@ def get_wifi_status() -> WifiStatus:
                         signal=signal,
                         device=device
                     )
-    except Exception:
-        pass
+    except subprocess.TimeoutExpired:
+        logger.error("Timeout while getting Wi-Fi status")
+    except subprocess.SubprocessError as e:
+        logger.error(f"Failed to get Wi-Fi status: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error while getting Wi-Fi status: {e}")
 
     return WifiStatus(connected=False)
 
@@ -101,9 +119,10 @@ def get_wifi_status() -> WifiStatus:
 @router.get("", response_model=WifiInfo)
 async def get_wifi_info():
     """Get Wi-Fi status and available networks."""
+    networks = get_wifi_networks()
     return WifiInfo(
-        status=get_wifi_status(),
-        networks=get_wifi_networks()
+        status=get_wifi_status(networks),
+        networks=networks
     )
 
 
@@ -123,11 +142,21 @@ async def get_available_networks():
 async def scan_networks():
     """Trigger a Wi-Fi network scan."""
     try:
-        subprocess.run(
+        result = subprocess.run(
             ['nmcli', 'dev', 'wifi', 'rescan'],
             capture_output=True,
             timeout=10
         )
-        return {"success": True, "message": "Scan initiated"}
+        if result.returncode == 0:
+            logger.info("Wi-Fi network scan initiated successfully")
+            return {"success": True, "message": "Scan initiated"}
+        else:
+            error_msg = result.stderr.decode('utf-8') if result.stderr else "Unknown error"
+            logger.error(f"Wi-Fi scan failed: {error_msg}")
+            return {"success": False, "message": f"Scan failed: {error_msg}"}
+    except subprocess.TimeoutExpired:
+        logger.error("Timeout while scanning Wi-Fi networks")
+        return {"success": False, "message": "Scan timeout"}
     except Exception as e:
+        logger.error(f"Unexpected error during Wi-Fi scan: {e}")
         return {"success": False, "message": str(e)}
